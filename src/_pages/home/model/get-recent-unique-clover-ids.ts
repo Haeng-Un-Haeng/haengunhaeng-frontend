@@ -1,4 +1,4 @@
-import type { CloverCollectionRecord } from '@/entity/clover';
+import type { CloverCollectionRecord } from '@/entities/clover';
 
 const RECENT_CLOVER_LIMIT = 7;
 

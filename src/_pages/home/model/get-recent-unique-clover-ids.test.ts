@@ -1,5 +1,6 @@
+import type { CloverCollectionRecord } from '@/entities/clover';
+
 import { getRecentUniqueCloverIds } from './get-recent-unique-clover-ids';
-import type { CloverCollectionRecord } from './types';
 
 describe('getRecentUniqueCloverIds', () => {
   it('최근 획득 순으로 중복 클로버를 제거한다', () => {

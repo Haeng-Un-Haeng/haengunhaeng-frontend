@@ -1,0 +1,25 @@
+:root {
+  --brand-green: #2f8f5b;
+  --brand-green-dark: #216c45;
+  --brand-mint: #dff3e6;
+  --brand-mint-light: #f1faef;
+  --brand-cream: #fffdf5;
+  --brand-peach: #fff0d9;
+  --brand-ink: #173c2a;
+  --brand-muted: #65796d;
+  --brand-white: #ffffff;
+}
+
+@theme inline {
+  --color-brand: var(--brand-green);
+  --color-brand-strong: var(--brand-green-dark);
+  --color-brand-soft: var(--brand-mint);
+  --color-canvas: var(--brand-cream);
+  --color-surface: var(--brand-white);
+  --color-surface-soft: var(--brand-mint-light);
+  --color-ink: var(--brand-ink);
+  --color-muted: var(--brand-muted);
+  --color-accent-soft: var(--brand-peach);
+  --color-line: var(--brand-mint);
+  --color-focus: var(--brand-green-dark);
+}

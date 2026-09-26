@@ -1,8 +1,10 @@
 @import 'tailwindcss';
+@import '../shared/styles/tokens.css';
 
 @font-face {
   font-family: 'Pretendard Variable';
-  src: url('/fonts/pretendard/PretendardVariable.woff2') format('woff2');
+  src: url('/fonts/pretendard/PretendardVariable.woff2')
+    format('woff2');
   font-style: normal;
   font-weight: 45 920;
   font-display: swap;
@@ -16,7 +18,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-pretendard: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+  --font-pretendard:
+    'Pretendard Variable', Pretendard, system-ui, sans-serif;
   --text-clover: 13px;
   --text-clover--line-height: normal;
   --text-clover--letter-spacing: 0em;

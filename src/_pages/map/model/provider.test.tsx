@@ -27,7 +27,9 @@ describe('MapUiStoreProvider', () => {
   it('초기 trialResult는 null이다', () => {
     const view = renderMapUi(<StateProbe />);
 
-    expect(view.getByLabelText('결과 상태')).toHaveTextContent(/^null$/);
+    expect(view.getByLabelText('결과 상태')).toHaveTextContent(
+      /^null$/,
+    );
   });
 
   it('결과를 열면 전달한 값이 반영되고 닫으면 다시 null이 된다', async () => {
@@ -35,10 +37,14 @@ describe('MapUiStoreProvider', () => {
     const view = renderMapUi(<StateProbe />);
 
     await user.click(view.getByRole('button', { name: '결과 열기' }));
-    expect(JSON.parse(view.getByLabelText('결과 상태').textContent!)).toEqual(trialResult);
+    expect(
+      JSON.parse(view.getByLabelText('결과 상태').textContent!),
+    ).toEqual(trialResult);
 
     await user.click(view.getByRole('button', { name: '결과 닫기' }));
-    expect(view.getByLabelText('결과 상태')).toHaveTextContent(/^null$/);
+    expect(view.getByLabelText('결과 상태')).toHaveTextContent(
+      /^null$/,
+    );
   });
 
   it('서로 다른 Provider의 상태는 독립적이다', async () => {
@@ -49,12 +55,22 @@ describe('MapUiStoreProvider', () => {
     const firstUi = within(first.container);
     const secondUi = within(second.container);
 
-    await user.click(firstUi.getByRole('button', { name: '결과 열기' }));
-    expect(JSON.parse(firstUi.getByLabelText('결과 상태').textContent!)).toEqual(trialResult);
-    expect(secondUi.getByLabelText('결과 상태')).toHaveTextContent(/^null$/);
+    await user.click(
+      firstUi.getByRole('button', { name: '결과 열기' }),
+    );
+    expect(
+      JSON.parse(firstUi.getByLabelText('결과 상태').textContent!),
+    ).toEqual(trialResult);
+    expect(secondUi.getByLabelText('결과 상태')).toHaveTextContent(
+      /^null$/,
+    );
 
     // 두 번째 Provider의 닫기 액션도 첫 번째 Provider에는 영향을 주지 않는다.
-    await user.click(secondUi.getByRole('button', { name: '결과 닫기' }));
-    expect(JSON.parse(firstUi.getByLabelText('결과 상태').textContent!)).toEqual(trialResult);
+    await user.click(
+      secondUi.getByRole('button', { name: '결과 닫기' }),
+    );
+    expect(
+      JSON.parse(firstUi.getByLabelText('결과 상태').textContent!),
+    ).toEqual(trialResult);
   });
 });

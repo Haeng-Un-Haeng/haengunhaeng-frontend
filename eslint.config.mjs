@@ -1,3 +1,4 @@
+import wrapCn from './tooling/eslint/wrap-cn.mjs';
 // For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
 import storybook from 'eslint-plugin-storybook';
 
@@ -23,6 +24,11 @@ const eslintConfig = defineConfig([
     'coverage/**',
     'next-env.d.ts',
   ]),
+  {
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
+    plugins: { local: { rules: { 'wrap-cn': wrapCn } } },
+    rules: { 'local/wrap-cn': ['error', { maxLength: 50 }] },
+  },
   eslintConfigPrettier,
   ...storybook.configs['flat/recommended'],
 ]);

@@ -29,7 +29,10 @@ import { render } from './test-utils';
 // 결과는 Omit<RenderOptions, 'wrapper'> | undefined다.
 // Omit은 객체 타입에서 지정한 속성을 제외한다. 여기서는 wrapper 옵션을 제외한다.
 // 공통 render의 옵션 타입이 나중에 바뀌어도 이 도우미의 옵션 타입이 함께 따라간다.
-export function renderMapUi(ui: ReactElement, options?: Parameters<typeof render>[1]) {
+export function renderMapUi(
+  ui: ReactElement,
+  options?: Parameters<typeof render>[1],
+) {
   // 지도 상태를 사용하는 훅이 동작하도록 UI를 지도 전용 Provider로 감싼다.
   // Provider는 처음 마운트될 때 새 Store를 만들므로 독립된 렌더끼리 상태를 공유하지 않는다.
   const withMapProvider = (element: ReactElement) => (
@@ -44,6 +47,7 @@ export function renderMapUi(ui: ReactElement, options?: Parameters<typeof render
     // 같은 렌더의 UI를 갱신할 때는 Provider와 기존 Store를 유지한다.
     // rerender에도 같은 Provider 구조를 전달해야 Provider가 사라지거나 재마운트되지 않는다.
     // 새 JSX 객체를 만들어도 컴포넌트 타입과 위치가 같으면 React가 기존 상태를 유지한다.
-    rerender: (nextUi: ReactElement) => result.rerender(withMapProvider(nextUi)),
+    rerender: (nextUi: ReactElement) =>
+      result.rerender(withMapProvider(nextUi)),
   };
 }

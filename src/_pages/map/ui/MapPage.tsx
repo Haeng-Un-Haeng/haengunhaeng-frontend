@@ -1,3 +1,4 @@
+import { MapView } from './MapView';
 import { MapUiStoreProvider } from '../model/provider';
 
 export function MapPage() {
@@ -9,5 +10,9 @@ export function MapPage() {
 }
 
 function MapContent() {
-  return <main>지도 화면</main>;
+  return (
+    <main>
+      <MapView />
+    </main>
+  );
 }

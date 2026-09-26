@@ -7,10 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "format": "prettier . --write",
+    "format": "eslint src --fix && prettier . --write",
     "format:check": "prettier . --check",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run format:check && npm run typecheck",
+    "check": "npm run test:formatting && npm run lint && npm run format:check && npm run typecheck",
     "verify": "npm run check && npm run build",
     "prepare": "husky",
     "test": "jest",
@@ -18,7 +18,8 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --runInBand",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test:formatting": "node tooling/eslint/check-cn.mjs"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
@@ -28,12 +29,20 @@
     "*.{json,md,css,scss,yml,yaml}": "prettier --write"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "tailwind-merge": "^3.7.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "latest",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/addon-docs": "^10.6.0",
+    "@storybook/addon-mcp": "^10.6.0",
+    "@storybook/addon-vitest": "^10.6.0",
+    "@storybook/nextjs-vite": "^10.6.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
@@ -43,34 +52,29 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/browser-playwright": "latest",
+    "@vitest/coverage-v8": "latest",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-storybook": "^10.6.0",
     "husky": "^9.1.7",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
     "lint-staged": "^17.5.1",
+    "playwright": "latest",
     "prettier": "^3.9.8",
+    "storybook": "^10.6.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "typescript": "^5",
-    "storybook": "^10.6.0",
-    "@storybook/nextjs-vite": "^10.6.0",
-    "@chromatic-com/storybook": "latest",
-    "@storybook/addon-vitest": "^10.6.0",
-    "@storybook/addon-a11y": "^10.6.0",
-    "@storybook/addon-docs": "^10.6.0",
-    "@storybook/addon-mcp": "^10.6.0",
     "vite": "latest",
-    "eslint-plugin-storybook": "^10.6.0",
-    "vitest": "latest",
-    "playwright": "latest",
-    "@vitest/browser-playwright": "latest",
-    "@vitest/coverage-v8": "latest"
+    "vitest": "latest"
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true,
-    "@parcel/watcher@2.6.0": true
+    "@parcel/watcher@2.6.0": true,
+    "esbuild@0.28.2": true
   }
 }

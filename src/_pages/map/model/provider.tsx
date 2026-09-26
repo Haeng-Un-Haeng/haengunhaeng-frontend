@@ -4,7 +4,12 @@
 // https://app.notion.com/p/Zustand-Provider-store-selector-3e408cf035808159ae8fc4789ca02731
 
 // Context와 Hook을 사용하는 컴포넌트이므로 Client Component로 선언한다.
-import { createContext, type PropsWithChildren, useContext, useState } from 'react';
+import {
+  createContext,
+  type PropsWithChildren,
+  useContext,
+  useState,
+} from 'react';
 import { useStore } from 'zustand';
 
 import { createMapUiStore, type MapUiStore } from './store';
@@ -20,7 +25,11 @@ export function MapUiStoreProvider({ children }: PropsWithChildren) {
   const [store] = useState(createMapUiStore);
 
   // value는 Context를 통해 공유할 값이다. children 전체가 이 스토어를 사용할 수 있다.
-  return <MapUiStoreContext.Provider value={store}>{children}</MapUiStoreContext.Provider>;
+  return (
+    <MapUiStoreContext.Provider value={store}>
+      {children}
+    </MapUiStoreContext.Provider>
+  );
 }
 
 // 이 Hook은 하위 컴포넌트에서 스토어의 필요한 상태나 액션을 가져올 때 사용한다.
@@ -31,14 +40,18 @@ export function MapUiStoreProvider({ children }: PropsWithChildren) {
 // selector는 전체 상태를 받아 필요한 값만 골라 반환하는 함수다.
 // 예: useMapUiStore((state) => state.trialResult) → TrialResult | null
 // 예: useMapUiStore((state) => state.closeTrialResult) → () => void
-export function useMapUiStore<T>(selector: (state: ReturnType<MapUiStore['getState']>) => T) {
+export function useMapUiStore<T>(
+  selector: (state: ReturnType<MapUiStore['getState']>) => T,
+) {
   // 자신을 감싸는 가장 가까운 MapUiStoreContext.Provider의 value를 가져온다.
   const store = useContext(MapUiStoreContext);
 
   // Provider 밖에서 호출하면 기본값 null이 나온다.
   // 잘못된 사용을 알리고, 이 검사 이후 store의 타입도 MapUiStore로 좁힌다.
   if (!store) {
-    throw new Error('useMapUiStore must be used within MapUiStoreProvider');
+    throw new Error(
+      'useMapUiStore must be used within MapUiStoreProvider',
+    );
   }
 
   // useStore는 값을 가져오는 것과 함께, 그 값이 바뀌었는지도 계속 확인하도록 연결한다.

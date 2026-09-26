@@ -27,7 +27,9 @@ const meta = {
   component: TypographySample,
   parameters: {
     layout: 'centered',
-    backgrounds: { options: { light: { name: 'Light', value: '#ffffff' } } },
+    backgrounds: {
+      options: { light: { name: 'Light', value: '#ffffff' } },
+    },
   },
   globals: { backgrounds: { value: 'light' } },
 } satisfies Meta<typeof TypographySample>;

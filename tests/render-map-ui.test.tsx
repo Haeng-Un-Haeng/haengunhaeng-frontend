@@ -13,8 +13,16 @@ function StateProbe({ label = 'result' }: { label?: string }) {
   return (
     <>
       {/* null은 empty로 표시한다. aria-label은 테스트에서 출력 요소를 찾는 이름이다. */}
-      <output aria-label={label}>{result?.cloverId ?? 'empty'}</output>
-      <button onClick={() => open({ cloverId: 'clover-1', messageId: 'message-1' })}>Open</button>
+      <output aria-label={label}>
+        {result?.cloverId ?? 'empty'}
+      </output>
+      <button
+        onClick={() =>
+          open({ cloverId: 'clover-1', messageId: 'message-1' })
+        }
+      >
+        Open
+      </button>
     </>
   );
 }
@@ -27,11 +35,15 @@ it('preserves the Store on rerender and creates a fresh Store after unmount', as
   // 1. 초기 상태에는 결과가 없고, 버튼을 누르면 전달한 결과로 상태가 바뀐다.
   expect(first.getByLabelText('result')).toHaveTextContent('empty');
   await user.click(first.getByRole('button', { name: 'Open' }));
-  expect(first.getByLabelText('result')).toHaveTextContent('clover-1');
+  expect(first.getByLabelText('result')).toHaveTextContent(
+    'clover-1',
+  );
 
   // 2. 같은 렌더에서 props만 바꾸면 출력 이름은 바뀌지만 Store의 결과는 유지된다.
   first.rerender(<StateProbe label="updated" />);
-  expect(first.getByLabelText('updated')).toHaveTextContent('clover-1');
+  expect(first.getByLabelText('updated')).toHaveTextContent(
+    'clover-1',
+  );
   // 3. 기존 Provider를 제거하고 다시 렌더하면 이전 결과가 없는 새 Store로 시작한다.
   // 한 테스트 안에서 검증하므로 다른 테스트의 실행 순서에 의존하지 않는다.
   first.unmount();

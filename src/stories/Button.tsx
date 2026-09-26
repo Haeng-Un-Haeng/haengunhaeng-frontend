@@ -1,3 +1,4 @@
+import { cn } from '@/shared/lib/cn';
 import './button.css';
 
 export interface ButtonProps {
@@ -21,11 +22,17 @@ export const Button = ({
   label,
   ...props
 }: ButtonProps) => {
-  const mode = primary ? 'storybook-button--primary' : 'storybook-button--secondary';
+  const mode = primary
+    ? 'storybook-button--primary'
+    : 'storybook-button--secondary';
   return (
     <button
       type="button"
-      className={['storybook-button', `storybook-button--${size}`, mode].join(' ')}
+      className={cn(
+        'storybook-button',
+        `storybook-button--${size}`,
+        mode,
+      )}
       {...props}
     >
       {label}

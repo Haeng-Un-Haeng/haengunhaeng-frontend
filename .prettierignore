@@ -1,1 +1,4 @@
 storybook-static/
+
+# Generated bus-stop data: preserve compact JSON and skip formatting checks.
+/public/mock/bus-stops/**/*.json

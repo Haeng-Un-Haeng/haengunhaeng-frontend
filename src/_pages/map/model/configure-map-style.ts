@@ -31,32 +31,53 @@ const icons = {
   },
 };
 
+/**
+ * 지도 스타일을 구성하는 함수
+ * @param map - Maplibre GL 지도 객체
+ */
 export function configureMapStyle(map: Map) {
   // 장소 종류별 원형 아이콘
   for (const [name, icon] of Object.entries(icons)) {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 64;
+
     const context = canvas.getContext('2d');
+
     if (!context) continue;
+
     context.scale(2, 2);
     context.fillStyle = '#292d32';
     context.strokeStyle = icon.color;
     context.lineWidth = 1.5;
+
     context.beginPath();
     context.arc(16, 16, 14, 0, Math.PI * 2);
     context.fill();
     context.stroke();
+
     context.translate(6, 6);
     context.scale(20 / 24, 20 / 24);
     context.lineWidth = 1.8;
     context.lineJoin = 'round';
     context.lineCap = 'round';
+
     context.stroke(new Path2D(icon.path));
-    map.addImage(
-      'place-' + name,
-      context.getImageData(0, 0, 64, 64),
-      { pixelRatio: 2 },
-    );
+
+    const imageName = `place-${name}`;
+
+    // 아직 등록되지 않은 커스텀 아이콘만 추가
+    if (!map.hasImage(imageName)) {
+      map.addImage(imageName, context.getImageData(0, 0, 64, 64), {
+        pixelRatio: 2,
+      });
+    }
+  }
+
+  // 기본 아이콘이 없는 경우를 대비해 투명한 'place-generic' 아이콘 추가
+  if (!map.hasImage('place-generic')) {
+    const transparentImage = new ImageData(1, 1);
+
+    map.addImage('place-generic', transparentImage);
   }
 
   for (const layer of map.getStyle().layers) {
@@ -119,40 +140,69 @@ export function configureMapStyle(map: Map) {
     }
 
     if (layer.layout?.['text-field']) {
-      // 도로 번호는 유지하고 지명만 현지화
-      if (!layer.id.includes('shield'))
-        map.setLayoutProperty(layer.id, 'text-field', localName);
+      // 지명은 한국어/현지어 우선으로 표시
+      map.setLayoutProperty(layer.id, 'text-field', localName);
+
       map.setPaintProperty(layer.id, 'text-color', '#e0e3e8');
       map.setPaintProperty(layer.id, 'text-halo-color', '#303238');
       map.setPaintProperty(layer.id, 'text-halo-width', 1.5);
     }
+
     if (
       layer['source-layer'] === 'poi' &&
       layer.layout?.['icon-image']
     ) {
-      const originalIcon = layer.layout['icon-image'];
-      const fallback =
-        typeof originalIcon === 'string'
-          ? originalIcon
-          : Array.isArray(originalIcon)
-            ? (originalIcon as ExpressionSpecification)
-            : 'marker';
       map.setLayoutProperty(layer.id, 'icon-image', [
         'match',
         ['get', 'class'],
+
         ['cafe', 'restaurant', 'fast_food', 'bar'],
         'place-cafe',
+
         ['park', 'garden'],
         'place-park',
+
         ['bus', 'rail', 'airport'],
         'place-transit',
+
         ['hospital', 'pharmacy', 'doctor'],
         'place-hospital',
+
         ['museum', 'monument', 'attraction', 'town_hall'],
         'place-landmark',
-        fallback,
+
+        'place-generic',
       ]);
+
+      map.setPaintProperty(layer.id, 'icon-opacity', [
+        'match',
+        ['get', 'class'],
+
+        [
+          'cafe',
+          'restaurant',
+          'fast_food',
+          'bar',
+          'park',
+          'garden',
+          'bus',
+          'rail',
+          'airport',
+          'hospital',
+          'pharmacy',
+          'doctor',
+          'museum',
+          'monument',
+          'attraction',
+          'town_hall',
+        ],
+        1,
+
+        0,
+      ]);
+
       map.setLayoutProperty(layer.id, 'icon-size', 0.85);
+
       map.setLayoutProperty(
         layer.id,
         'text-offset',

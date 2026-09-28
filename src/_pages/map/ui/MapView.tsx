@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { configureMapStyle } from '../model/configure-map-style';
+import { configureRoadWidths } from '../model/road-width';
 import {
   getCurrentLocation,
   type LocationResult,
@@ -65,6 +66,10 @@ export function MapView() {
     mapRef.current = map;
 
     map.on('style.load', () => configureMapStyle(map));
+    // 지도 이동 후 중심 위도가 달라지면 미터 단위 폭의 픽셀 환산도 갱신한다.
+    map.on('moveend', () => {
+      if (map.isStyleLoaded()) configureRoadWidths(map);
+    });
 
     map.addControl(new NavigationControl(), 'top-right');
 

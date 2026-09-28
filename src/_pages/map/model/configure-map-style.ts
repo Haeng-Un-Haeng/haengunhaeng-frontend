@@ -1,5 +1,7 @@
 import type { ExpressionSpecification, Map } from 'maplibre-gl';
 
+import { configureRoadWidths } from './road-width';
+
 // 한국어 번역 우선, 영어 병기 없이 현지 비라틴 이름 사용
 const localName: ExpressionSpecification = [
   'coalesce',
@@ -36,6 +38,8 @@ const icons = {
  * @param map - Maplibre GL 지도 객체
  */
 export function configureMapStyle(map: Map) {
+  configureRoadWidths(map);
+
   // 장소 종류별 원형 아이콘
   for (const [name, icon] of Object.entries(icons)) {
     const canvas = document.createElement('canvas');

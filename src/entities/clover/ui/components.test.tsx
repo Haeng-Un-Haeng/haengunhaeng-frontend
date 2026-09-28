@@ -38,9 +38,11 @@ it('미수집 카드는 클로버 이름과 그림을 노출하지 않는다', (
   );
   expect(screen.queryByText('비밀 행운')).not.toBeInTheDocument();
   expect(container.querySelector('img')).toBeNull();
-  expect(screen.getByRole('button')).toHaveTextContent(
-    '아직 만나지 못한 클로버',
-  );
+  expect(
+    screen.getByRole('button', {
+      name: '아직 만나지 못한 클로버',
+    }),
+  ).toBeInTheDocument();
 });
 
 it('이미지 로딩 실패 후 대체 그림을 표시하고 새 이미지로 바뀌면 다시 시도한다', () => {
@@ -57,9 +59,11 @@ it('이미지 로딩 실패 후 대체 그림을 표시하고 새 이미지로 �
       clover={{ id: '2', name: '다음 행운', imageUrl: '/second.png' }}
     />,
   );
-  expect(new URL(container.querySelector('img')!.src).pathname).toBe(
-    '/second.png',
-  );
+  const image = container.querySelector('img')!;
+  const imageUrl = new URL(image.src);
+
+  expect(imageUrl.pathname).toBe('/_next/image');
+  expect(imageUrl.searchParams.get('url')).toBe('/second.png');
 });
 
 it('마커는 키보드로 실행하고 비활성 상태에서는 실행하지 않는다', async () => {

@@ -19,7 +19,8 @@
     "test:ci": "jest --ci --runInBand",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test:formatting": "node tooling/eslint/check-cn.mjs"
+    "test:formatting": "node tooling/eslint/check-cn.mjs",
+    "generate:osm-test": "node tooling/generate-omokgyo-stops.mjs"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
@@ -56,14 +57,17 @@
     "@vitest/browser-playwright": "latest",
     "@vitest/coverage-v8": "latest",
     "babel-plugin-react-compiler": "1.0.0",
+    "csv-parse": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-storybook": "^10.6.0",
     "husky": "^9.1.7",
+    "iconv-lite": "^0.7.3",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
     "lint-staged": "^17.5.1",
+    "osm-pbf-parser-node": "^1.1.4",
     "playwright": "latest",
     "prettier": "^3.9.8",
     "storybook": "^10.6.0",

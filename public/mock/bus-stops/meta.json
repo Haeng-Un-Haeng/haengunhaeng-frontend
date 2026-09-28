@@ -1,0 +1,10 @@
+{
+  "source": "국토교통부 전국 버스정류장 위치정보",
+  "sourceDate": "2025-10-31",
+  "gridSize": 0.1,
+  "inputCount": 227245,
+  "outputCount": 227240,
+  "repairedCount": 0,
+  "excludedCount": 5,
+  "gridCount": 1094
+}

@@ -48,6 +48,10 @@ export function CloverCard({
       {...props}
       type={type}
       aria-pressed={selected}
+      aria-label={
+        props['aria-label'] ??
+        (collected ? clover.name : '아직 만나지 못한 클로버')
+      }
       className={cn(
         'flex min-w-0 flex-col items-center',
         'gap-3 rounded-2xl border p-5 text-center',

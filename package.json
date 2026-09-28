@@ -20,7 +20,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test:formatting": "node tooling/eslint/check-cn.mjs",
-    "generate:bus-stops": "node tooling/generate-bus-stop-fixtures.mjs"
+    "generate:osm-test": "node tooling/generate-omokgyo-stops.mjs"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
@@ -67,6 +67,7 @@
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
     "lint-staged": "^17.5.1",
+    "osm-pbf-parser-node": "^1.1.4",
     "playwright": "latest",
     "prettier": "^3.9.8",
     "storybook": "^10.6.0",

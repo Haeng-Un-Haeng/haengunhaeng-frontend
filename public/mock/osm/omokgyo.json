@@ -1,0 +1,95 @@
+{
+  "source": "OpenStreetMap contributors",
+  "license": "ODbL-1.0",
+  "attributionUrl": "https://www.openstreetmap.org/copyright",
+  "sourceFile": "south-korea-latest.osm.pbf",
+  "snapshot": "2026-09-27T20:23:36.000Z",
+  "center": {
+    "latitude": 37.524472,
+    "longitude": 126.875139
+  },
+  "radiusMeters": 1000,
+  "totalNearbyNodes": 58,
+  "stops": [
+    {
+      "id": "osm-node-11684613053",
+      "name": "오목교역.대학학원",
+      "lat": 37.5246693,
+      "lng": 126.8747399,
+      "distanceMeters": 41,
+      "osmUrl": "https://www.openstreetmap.org/node/11684613053"
+    },
+    {
+      "id": "osm-node-357928493",
+      "name": "오목교역7번출구.청학빌딩",
+      "lat": 37.5240057,
+      "lng": 126.8756957,
+      "distanceMeters": 71,
+      "osmUrl": "https://www.openstreetmap.org/node/357928493"
+    },
+    {
+      "id": "osm-node-11684613052",
+      "name": "오목교역3번출구",
+      "lat": 37.5249119,
+      "lng": 126.8763768,
+      "distanceMeters": 120,
+      "osmUrl": "https://www.openstreetmap.org/node/11684613052"
+    },
+    {
+      "id": "osm-node-357921942",
+      "name": "오목교역6번출구.청학빌딩",
+      "lat": 37.5234027,
+      "lng": 126.8753299,
+      "distanceMeters": 120,
+      "osmUrl": "https://www.openstreetmap.org/node/357921942"
+    },
+    {
+      "id": "osm-node-357898124",
+      "name": "오목교역.동신한방병원",
+      "lat": 37.5244,
+      "lng": 126.87691,
+      "distanceMeters": 156,
+      "osmUrl": "https://www.openstreetmap.org/node/357898124"
+    },
+    {
+      "id": "osm-node-357907386",
+      "name": "오목교역.동신한방병원",
+      "lat": 37.5241552,
+      "lng": 126.8768733,
+      "distanceMeters": 157,
+      "osmUrl": "https://www.openstreetmap.org/node/357907386"
+    },
+    {
+      "id": "osm-node-357907303",
+      "name": "오목교역1번출구.대학빌딩",
+      "lat": 37.5250022,
+      "lng": 126.8729147,
+      "distanceMeters": 205,
+      "osmUrl": "https://www.openstreetmap.org/node/357907303"
+    },
+    {
+      "id": "osm-node-357853852",
+      "name": "오목교역8번출구.대학빌딩",
+      "lat": 37.5247507,
+      "lng": 126.8726822,
+      "distanceMeters": 219,
+      "osmUrl": "https://www.openstreetmap.org/node/357853852"
+    },
+    {
+      "id": "osm-node-11684613050",
+      "name": "목운초등학교.목운중학교",
+      "lat": 37.5264743,
+      "lng": 126.8740237,
+      "distanceMeters": 243,
+      "osmUrl": "https://www.openstreetmap.org/node/11684613050"
+    },
+    {
+      "id": "osm-node-11684613051",
+      "name": "목운초등학교.목운중학교",
+      "lat": 37.5261822,
+      "lng": 126.8734066,
+      "distanceMeters": 244,
+      "osmUrl": "https://www.openstreetmap.org/node/11684613051"
+    }
+  ]
+}

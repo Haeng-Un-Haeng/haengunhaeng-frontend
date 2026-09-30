@@ -1,4 +1,5 @@
 import { createStore } from 'zustand/vanilla';
+import type { TrialTarget } from './trial-target';
 
 type TrialResult = {
   cloverId: string;
@@ -6,6 +7,8 @@ type TrialResult = {
 };
 
 type MapUiState = {
+  trialTarget: TrialTarget | null;
+  setTrialTarget: (target: TrialTarget | null) => void;
   trialResult: TrialResult | null; // trialResult === null -> 모달 닫힘
   openTrialResult: (result: TrialResult) => void;
   closeTrialResult: () => void;
@@ -13,6 +16,9 @@ type MapUiState = {
 
 export const createMapUiStore = () =>
   createStore<MapUiState>((set) => ({
+    // 최종 체험 대상만 저장하고 정류장 목록과 지도 객체는 저장하지 않는다.
+    trialTarget: null,
+    setTrialTarget: (target) => set({ trialTarget: target }),
     trialResult: null,
 
     openTrialResult: (result) => {

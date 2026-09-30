@@ -44,6 +44,7 @@ export function CloverMarker({
         'focus-visible:outline-2',
         'focus-visible:outline-offset-4',
         'focus-visible:outline-focus',
+        'enabled:cursor-pointer',
         'disabled:cursor-not-allowed',
         className,
       )}

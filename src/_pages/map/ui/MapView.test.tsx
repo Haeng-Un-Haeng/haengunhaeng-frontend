@@ -1,7 +1,13 @@
 import type { BusStop } from '@/entities/bus-stop';
 
+import userEvent from '@testing-library/user-event';
+
 import { renderMapUi } from '../../../../tests/render-map-ui';
-import { waitFor } from '../../../../tests/test-utils';
+import {
+  screen,
+  waitFor,
+  within,
+} from '../../../../tests/test-utils';
 import { DEFAULT_MAP_CENTER } from '../model/constants';
 import { loadNearbyBusStops } from '../model/load-nearby-bus-stops';
 import {
@@ -224,6 +230,10 @@ beforeEach(() => {
   });
 });
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe('체험용 클로버 위치 분기·최근접 정류장', () => {
   test('CURRENT에서는 실제 위치의 최근접 정류장에 마커를 표시한다', async () => {
     const nearest = stopAt(30);
@@ -363,5 +373,95 @@ describe('체험용 클로버 위치 분기·최근접 정류장', () => {
 
     // 재진입했을 때 이전 마커가 남지 않도록 cleanup을 보장한다.
     expect(marker.remove).toHaveBeenCalledTimes(1);
+  });
+
+  test('체험용 마커를 누르면 선택된 클로버와 메시지를 모달에 표시한다', async () => {
+    const user = userEvent.setup();
+    const nearest = stopAt(30);
+
+    getCurrentLocationMock.mockResolvedValue(current);
+    loadNearbyBusStopsMock.mockResolvedValue([nearest]);
+
+    jest
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0.75)
+      .mockReturnValueOnce(0.4);
+
+    renderMapUi(<MapView />);
+
+    await waitForTrialMarker();
+
+    const marker = screen.getByRole('button', {
+      name: '체험용 클로버',
+    });
+
+    expect(marker).toHaveAttribute('aria-haspopup', 'dialog');
+
+    // 사용자가 마커를 누르기 전에 클릭 안내가 보여야 한다.
+    expect(screen.getByText('클로버를 눌러보세요')).toBeVisible();
+
+    await user.click(marker);
+
+    const dialog = screen.getByRole('dialog', {
+      name: '행운을 발견했어요',
+    });
+
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('행운 가득')).toBeVisible();
+    expect(
+      within(dialog).getByText(
+        '작은 행운이 좋은 하루로 이어지길 바라요.',
+      ),
+    ).toBeVisible();
+
+    /**
+     * 인증은 아직 연결하지 않는다.
+     * 실제 로그인처럼 동작하지 않도록 CTA를 비활성 상태로 노출한다.
+     */
+    const loginButton = within(dialog).getByRole('button', {
+      name: '로그인하고 클로버 수집하기',
+    });
+
+    expect(loginButton).toBeDisabled();
+    expect(
+      within(dialog).getByText('로그인 기능은 준비 중이에요.'),
+    ).toBeVisible();
+
+    // 마커 이미지가 아니라 Dialog 안의 선택된 클로버 이미지를 확인한다.
+    expect(dialog.querySelector('img')).not.toBeNull();
+  });
+
+  test('체험 결과 모달을 닫으면 마커를 유지한 채 지도로 복귀한다', async () => {
+    const user = userEvent.setup();
+    const nearest = stopAt(30);
+
+    getCurrentLocationMock.mockResolvedValue(current);
+    loadNearbyBusStopsMock.mockResolvedValue([nearest]);
+
+    renderMapUi(<MapView />);
+
+    await waitForTrialMarker();
+
+    const marker = screen.getByRole('button', {
+      name: '체험용 클로버',
+    });
+
+    await user.click(marker);
+
+    const dialog = screen.getByRole('dialog', {
+      name: '행운을 발견했어요',
+    });
+
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: '닫기',
+      }),
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    // Dialog만 닫고 MapLibre Marker는 그대로 유지한다.
+    expect(marker).toBeInTheDocument();
+    expect(mapLibreMockState.markerInstances).toHaveLength(1);
   });
 });

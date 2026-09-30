@@ -1,15 +1,12 @@
 import { createStore } from 'zustand/vanilla';
-import type { TrialTarget } from './trial-target';
 
-type TrialResult = {
-  cloverId: string;
-  messageId: string;
-};
+import type { TrialResult } from './trial-result';
+import type { TrialTarget } from './trial-target';
 
 type MapUiState = {
   trialTarget: TrialTarget | null;
   setTrialTarget: (target: TrialTarget | null) => void;
-  trialResult: TrialResult | null; // trialResult === null -> 모달 닫힘
+  trialResult: TrialResult | null;
   openTrialResult: (result: TrialResult) => void;
   closeTrialResult: () => void;
 };

@@ -11,7 +11,8 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { CloverMarker } from '@/entities/clover';
+import { cloverFixtures, CloverMarker } from '@/entities/clover';
+import { luckyMessageFixtures } from '@/entities/lucky-message';
 import { cn } from '@/shared/lib/cn';
 
 import { configureMapStyle } from '../model/configure-map-style';
@@ -23,8 +24,10 @@ import {
 } from '../model/location';
 import { useMapUiStore } from '../model/provider';
 import { configureRoadWidths } from '../model/road-width';
+import { selectTrialResult } from '../model/trial-result';
 import { selectTrialTarget } from '../model/trial-target';
 import { LocationStatusNotice } from './LocationStatusNotice';
+import { TrialResultDialog } from './TrialResultDialog';
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
@@ -34,6 +37,34 @@ export function MapView() {
   const setTrialTarget = useMapUiStore(
     (state) => state.setTrialTarget,
   );
+
+  const trialResult = useMapUiStore((state) => state.trialResult);
+
+  const openTrialResult = useMapUiStore(
+    (state) => state.openTrialResult,
+  );
+
+  const closeTrialResult = useMapUiStore(
+    (state) => state.closeTrialResult,
+  );
+
+  /**
+   * Store에는 fixture 전체 객체가 아니라
+   * 선택된 클로버·메시지 ID만 저장한다.
+   *
+   * 화면에 필요한 실제 데이터는 원본 fixture에서 다시 찾는다.
+   */
+  const trialClover = trialResult
+    ? cloverFixtures.find(
+        (clover) => clover.id === trialResult.cloverId,
+      )
+    : undefined;
+
+  const trialMessage = trialResult
+    ? luckyMessageFixtures.find(
+        (message) => message.id === trialResult.messageId,
+      )
+    : undefined;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -279,6 +310,26 @@ export function MapView() {
     };
   }, [location, isFallbackNoticeDismissed]);
 
+  /**
+   * 체험용 클로버를 누를 때마다
+   * 클로버와 행운 메시지를 각각 독립적으로 선택한다.
+   *
+   * fixture가 비어 있어 결과를 만들 수 없다면
+   * 잘못된 상태로 Dialog를 열지 않는다.
+   */
+  const handleTrialMarkerClick = () => {
+    const result = selectTrialResult(
+      cloverFixtures,
+      luckyMessageFixtures,
+    );
+
+    if (!result) {
+      return;
+    }
+
+    openTrialResult(result);
+  };
+
   return (
     <div className="relative h-dvh w-full">
       <div
@@ -302,9 +353,18 @@ export function MapView() {
             state="active"
             label="클로버를 눌러보세요"
             aria-label="체험용 클로버"
+            aria-haspopup="dialog"
+            onClick={handleTrialMarkerClick}
           />,
           markerElement,
         )}
+
+      <TrialResultDialog
+        open={trialResult !== null}
+        clover={trialClover}
+        message={trialMessage}
+        onClose={closeTrialResult}
+      />
 
       {!location && <LocationStatusNotice type="loading" />}
 

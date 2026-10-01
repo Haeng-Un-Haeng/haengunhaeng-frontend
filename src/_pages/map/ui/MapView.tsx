@@ -11,8 +11,11 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { CloverMarker } from '@/entities/clover';
+import { cloverFixtures, CloverMarker } from '@/entities/clover';
+import { luckyMessageFixtures } from '@/entities/lucky-message';
 import { cn } from '@/shared/lib/cn';
+import { Button } from '@/shared/ui/button';
+import { Notice } from '@/shared/ui/notice';
 
 import { configureMapStyle } from '../model/configure-map-style';
 import { DEFAULT_MAP_CENTER } from '../model/constants';
@@ -23,8 +26,10 @@ import {
 } from '../model/location';
 import { useMapUiStore } from '../model/provider';
 import { configureRoadWidths } from '../model/road-width';
+import { selectTrialResult } from '../model/trial-result';
 import { selectTrialTarget } from '../model/trial-target';
 import { LocationStatusNotice } from './LocationStatusNotice';
+import { TrialResultDialog } from './TrialResultDialog';
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
@@ -34,6 +39,34 @@ export function MapView() {
   const setTrialTarget = useMapUiStore(
     (state) => state.setTrialTarget,
   );
+
+  const trialResult = useMapUiStore((state) => state.trialResult);
+
+  const openTrialResult = useMapUiStore(
+    (state) => state.openTrialResult,
+  );
+
+  const closeTrialResult = useMapUiStore(
+    (state) => state.closeTrialResult,
+  );
+
+  /**
+   * Store에는 fixture 전체 객체가 아니라
+   * 선택된 클로버·메시지 ID만 저장한다.
+   *
+   * 화면에 필요한 실제 데이터는 원본 fixture에서 다시 찾는다.
+   */
+  const trialClover = trialResult
+    ? cloverFixtures.find(
+        (clover) => clover.id === trialResult.cloverId,
+      )
+    : undefined;
+
+  const trialMessage = trialResult
+    ? luckyMessageFixtures.find(
+        (message) => message.id === trialResult.messageId,
+      )
+    : undefined;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -52,73 +85,134 @@ export function MapView() {
     null,
   );
 
-  const [busStopError, setBusStopError] = useState<string | null>(
-    null,
-  );
+  const [mapLoadError, setMapLoadError] = useState(false);
+
+  const [busStopError, setBusStopError] = useState(false);
+
+  const [retryKey, setRetryKey] = useState(0);
 
   const [isFallbackNoticeDismissed, setFallbackNoticeDismissed] =
     useState(false);
 
+  const hasLoadError = mapLoadError || busStopError;
+
   /**
    * MapLibre 지도 초기화
+   *
+   * 첫 load 전에 발생한 error만 초기 로딩 실패로 처리한다.
+   * 정상 로딩 이후 개별 타일 요청이 일시적으로 실패한 경우에는
+   * 전체 지도를 오류 화면으로 전환하지 않는다.
    */
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 설치된 MapLibre와 같은 버전의 Worker를 사용한다.
-    const workerUrl = URL.createObjectURL(
-      new Blob(
-        [
-          'import "https://unpkg.com/maplibre-gl@' +
-            getVersion() +
-            '/dist/maplibre-gl-worker.mjs";',
-        ],
-        {
-          type: 'text/javascript',
-        },
-      ),
-    );
+    let map: Map | null = null;
+    let workerUrl: string | null = null;
+    let isLoaded = false;
+    let cancelled = false;
 
-    setWorkerUrl(workerUrl);
+    const handleMapLoad = () => {
+      isLoaded = true;
+      setMapLoadError(false);
+    };
 
-    const map = new Map({
-      container: containerRef.current,
-      style: MAP_STYLE_URL,
-      center: [
-        DEFAULT_MAP_CENTER.longitude,
-        DEFAULT_MAP_CENTER.latitude,
-      ],
-      zoom: 17,
-      pitch: 55,
-      bearing: -20,
-      attributionControl: false,
-      localIdeographFontFamily:
-        '"Pretendard Variable", "Noto Sans KR", sans-serif',
-    });
+    const handleMapError = () => {
+      if (isLoaded || cancelled) {
+        return;
+      }
 
-    mapRef.current = map;
+      setMapLoadError(true);
+      setTrialTarget(null);
+    };
 
-    map.on('style.load', () => {
-      configureMapStyle(map);
-    });
+    const handleStyleLoad = () => {
+      if (map) {
+        configureMapStyle(map);
+      }
+    };
 
-    // 지도 중심 위도가 달라지면
-    // 미터 단위 도로 폭을 다시 계산한다.
-    map.on('moveend', () => {
-      if (map.isStyleLoaded()) {
+    const handleMoveEnd = () => {
+      if (map?.isStyleLoaded()) {
         configureRoadWidths(map);
+      }
+    };
+
+    const frameId = window.requestAnimationFrame(() => {
+      if (cancelled || !containerRef.current) {
+        return;
+      }
+
+      try {
+        // 설치된 MapLibre와 같은 버전의 Worker를 사용한다.
+        workerUrl = URL.createObjectURL(
+          new Blob(
+            [
+              'import "https://unpkg.com/maplibre-gl@' +
+                getVersion() +
+                '/dist/maplibre-gl-worker.mjs";',
+            ],
+            {
+              type: 'text/javascript',
+            },
+          ),
+        );
+
+        setWorkerUrl(workerUrl);
+
+        map = new Map({
+          container: containerRef.current,
+          style: MAP_STYLE_URL,
+          center: [
+            DEFAULT_MAP_CENTER.longitude,
+            DEFAULT_MAP_CENTER.latitude,
+          ],
+          zoom: 17,
+          pitch: 55,
+          bearing: -20,
+          attributionControl: false,
+          localIdeographFontFamily:
+            '"Pretendard Variable", "Noto Sans KR", sans-serif',
+        });
+
+        mapRef.current = map;
+
+        map.on('load', handleMapLoad);
+        map.on('error', handleMapError);
+        map.on('style.load', handleStyleLoad);
+        map.on('moveend', handleMoveEnd);
+
+        map.addControl(new NavigationControl(), 'top-right');
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setMapLoadError(true);
+        setTrialTarget(null);
       }
     });
 
-    map.addControl(new NavigationControl(), 'top-right');
-
     return () => {
-      mapRef.current = null;
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
 
-      map.remove();
-      URL.revokeObjectURL(workerUrl);
+      if (mapRef.current === map) {
+        mapRef.current = null;
+      }
+
+      if (map) {
+        map.off('load', handleMapLoad);
+        map.off('error', handleMapError);
+        map.off('style.load', handleStyleLoad);
+        map.off('moveend', handleMoveEnd);
+        map.remove();
+      }
+
+      if (workerUrl) {
+        URL.revokeObjectURL(workerUrl);
+      }
     };
-  }, []);
+  }, [retryKey, setTrialTarget]);
 
   /**
    * 현재 위치를 한 번 조회한다.
@@ -138,7 +232,7 @@ export function MapView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryKey]);
 
   /**
    * 위치 결과를 기준으로 체험용 클로버가 놓일
@@ -178,7 +272,7 @@ export function MapView() {
           return;
         }
 
-        setBusStopError(null);
+        setBusStopError(false);
 
         const decision = selectTrialTarget(location, stops);
 
@@ -199,9 +293,7 @@ export function MapView() {
 
         setTrialTarget(null);
 
-        setBusStopError(
-          '주변 정류장을 불러오지 못했어요. 잠시 후 다시 접속해 주세요.',
-        );
+        setBusStopError(true);
       });
 
     return () => {
@@ -222,7 +314,7 @@ export function MapView() {
   useEffect(() => {
     const map = mapRef.current;
 
-    if (!map || !trialTarget) {
+    if (!map || !trialTarget || mapLoadError || busStopError) {
       setMarkerElement(null);
       return;
     }
@@ -256,7 +348,7 @@ export function MapView() {
        */
       marker.remove();
     };
-  }, [trialTarget]);
+  }, [trialTarget, mapLoadError, busStopError]);
 
   /**
    * 위치 조회가 FALLBACK인 경우 안내를 보여주고,
@@ -278,6 +370,41 @@ export function MapView() {
       window.clearTimeout(timer);
     };
   }, [location, isFallbackNoticeDismissed]);
+
+  /**
+   * 지도 또는 정류장 로딩 실패 시 현재 시도를 정리하고
+   * 위치 조회부터 전체 체험 흐름을 다시 시작한다.
+   */
+  const handleRetry = () => {
+    closeTrialResult();
+    setTrialTarget(null);
+    setMarkerElement(null);
+    setLocation(null);
+    setMapLoadError(false);
+    setBusStopError(false);
+    setFallbackNoticeDismissed(false);
+    setRetryKey((key) => key + 1);
+  };
+
+  /**
+   * 체험용 클로버를 누를 때마다
+   * 클로버와 행운 메시지를 각각 독립적으로 선택한다.
+   *
+   * fixture가 비어 있어 결과를 만들 수 없다면
+   * 잘못된 상태로 Dialog를 열지 않는다.
+   */
+  const handleTrialMarkerClick = () => {
+    const result = selectTrialResult(
+      cloverFixtures,
+      luckyMessageFixtures,
+    );
+
+    if (!result) {
+      return;
+    }
+
+    openTrialResult(result);
+  };
 
   return (
     <div className="relative h-dvh w-full">
@@ -302,26 +429,49 @@ export function MapView() {
             state="active"
             label="클로버를 눌러보세요"
             aria-label="체험용 클로버"
+            aria-haspopup="dialog"
+            onClick={handleTrialMarkerClick}
           />,
           markerElement,
         )}
 
-      {!location && <LocationStatusNotice type="loading" />}
+      <TrialResultDialog
+        open={trialResult !== null}
+        clover={trialClover}
+        message={trialMessage}
+        onClose={closeTrialResult}
+      />
 
-      {busStopError && (
-        <p
-          role="alert"
+      {!location && !hasLoadError && (
+        <LocationStatusNotice type="loading" />
+      )}
+
+      {hasLoadError && (
+        <div
           className={cn(
-            'absolute bottom-24 left-4 right-4 z-10',
-            'rounded-lg bg-surface p-4 text-sm text-ink',
+            'absolute left-4 right-4 top-1/2 z-20',
+            '-translate-y-1/2 space-y-3',
           )}
         >
-          {busStopError}
-        </p>
+          <Notice
+            variant="error"
+            title={
+              mapLoadError
+                ? '지도를 불러오지 못했어요.'
+                : '주변 정류장을 불러오지 못했어요.'
+            }
+            description="네트워크 상태를 확인한 뒤 다시 시도해 주세요."
+          />
+
+          <Button fullWidth onClick={handleRetry}>
+            다시 시도
+          </Button>
+        </div>
       )}
 
       {location?.source === 'FALLBACK' &&
-        !isFallbackNoticeDismissed && (
+        !isFallbackNoticeDismissed &&
+        !hasLoadError && (
           <LocationStatusNotice
             type="fallback"
             onDismiss={() => setFallbackNoticeDismissed(true)}

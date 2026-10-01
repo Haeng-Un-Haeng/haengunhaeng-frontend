@@ -1,7 +1,13 @@
 import type { BusStop } from '@/entities/bus-stop';
 
+import userEvent from '@testing-library/user-event';
+
 import { renderMapUi } from '../../../../tests/render-map-ui';
-import { waitFor } from '../../../../tests/test-utils';
+import {
+  screen,
+  waitFor,
+  within,
+} from '../../../../tests/test-utils';
 import { DEFAULT_MAP_CENTER } from '../model/constants';
 import { loadNearbyBusStops } from '../model/load-nearby-bus-stops';
 import {
@@ -29,6 +35,7 @@ jest.mock(
         container: HTMLElement;
         flyTo: jest.Mock;
         getZoom: jest.Mock;
+        remove: jest.Mock;
       }>,
       markerInstances: [] as Array<{
         element: HTMLElement;
@@ -36,10 +43,17 @@ jest.mock(
         addTo: jest.Mock;
         remove: jest.Mock;
       }>,
+      failNextMapConstruction: false,
+      failNextInitialLoad: false,
     };
 
     class MapMock {
       container: HTMLElement;
+
+      private listeners = new globalThis.Map<
+        string,
+        Set<() => void>
+      >();
 
       flyTo = jest.fn();
       getZoom = jest.fn(() => 17);
@@ -57,10 +71,38 @@ jest.mock(
       setPaintProperty = jest.fn();
       addControl = jest.fn();
       remove = jest.fn();
-      on = jest.fn();
-      off = jest.fn();
+
+      on = jest.fn((event: string, listener: () => void) => {
+        const listeners =
+          this.listeners.get(event) ?? new Set<() => void>();
+
+        listeners.add(listener);
+        this.listeners.set(event, listeners);
+
+        if (event === 'load' && !mockState.failNextInitialLoad) {
+          queueMicrotask(listener);
+        }
+
+        if (event === 'error' && mockState.failNextInitialLoad) {
+          mockState.failNextInitialLoad = false;
+          queueMicrotask(listener);
+        }
+
+        return this;
+      });
+
+      off = jest.fn((event: string, listener: () => void) => {
+        this.listeners.get(event)?.delete(listener);
+
+        return this;
+      });
 
       constructor(options: { container: HTMLElement }) {
+        if (mockState.failNextMapConstruction) {
+          mockState.failNextMapConstruction = false;
+          throw new Error('map construction failed');
+        }
+
         this.container = options.container;
         mockState.mapInstances.push(this);
       }
@@ -132,6 +174,7 @@ type MapLibreMockState = {
     container: HTMLElement;
     flyTo: jest.Mock;
     getZoom: jest.Mock;
+    remove: jest.Mock;
   }>;
 
   markerInstances: Array<{
@@ -140,6 +183,9 @@ type MapLibreMockState = {
     addTo: jest.Mock;
     remove: jest.Mock;
   }>;
+
+  failNextMapConstruction: boolean;
+  failNextInitialLoad: boolean;
 };
 
 const { __mockState: mapLibreMockState } = jest.requireMock(
@@ -208,6 +254,8 @@ beforeEach(() => {
   // 테스트 사이에서 Map/Marker 호출 기록이 공유되지 않도록 초기화한다.
   mapLibreMockState.mapInstances.length = 0;
   mapLibreMockState.markerInstances.length = 0;
+  mapLibreMockState.failNextMapConstruction = false;
+  mapLibreMockState.failNextInitialLoad = false;
 
   getCurrentLocationMock.mockReset();
   loadNearbyBusStopsMock.mockReset();
@@ -221,6 +269,90 @@ beforeEach(() => {
   Object.defineProperty(URL, 'revokeObjectURL', {
     configurable: true,
     value: jest.fn(),
+  });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+describe('지도 로딩 오류·재시도', () => {
+  test('지도 초기화에 실패하면 오류 안내와 다시 시도 버튼을 표시한다', async () => {
+    mapLibreMockState.failNextMapConstruction = true;
+
+    getCurrentLocationMock.mockResolvedValue(current);
+    loadNearbyBusStopsMock.mockResolvedValue([stopAt(30)]);
+
+    renderMapUi(<MapView />);
+
+    const alert = await screen.findByRole('alert');
+
+    expect(alert).toHaveTextContent('지도를 불러오지 못했어요.');
+    expect(
+      screen.getByRole('button', { name: '다시 시도' }),
+    ).toBeVisible();
+
+    expect(mapLibreMockState.mapInstances).toHaveLength(0);
+  });
+
+  test('첫 지도 로딩 중 오류가 나도 다시 시도하면 지도를 새로 초기화한다', async () => {
+    const user = userEvent.setup();
+    const nearest = stopAt(30);
+
+    mapLibreMockState.failNextInitialLoad = true;
+
+    getCurrentLocationMock.mockResolvedValue(current);
+    loadNearbyBusStopsMock.mockResolvedValue([nearest]);
+
+    renderMapUi(<MapView />);
+
+    expect(
+      await screen.findByText('지도를 불러오지 못했어요.'),
+    ).toBeVisible();
+
+    const failedMap = mapLibreMockState.mapInstances[0];
+
+    await user.click(
+      screen.getByRole('button', { name: '다시 시도' }),
+    );
+
+    await waitForTrialMarker();
+
+    expect(failedMap.remove).toHaveBeenCalledTimes(1);
+    expect(mapLibreMockState.mapInstances).toHaveLength(2);
+
+    expect(
+      screen.queryByText('지도를 불러오지 못했어요.'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('정류장 조회에 실패해도 다시 시도하면 체험용 마커를 표시한다', async () => {
+    const user = userEvent.setup();
+    const nearest = stopAt(30);
+
+    getCurrentLocationMock.mockResolvedValue(current);
+
+    loadNearbyBusStopsMock
+      .mockRejectedValueOnce(new Error('bus stop load failed'))
+      .mockResolvedValueOnce([nearest]);
+
+    renderMapUi(<MapView />);
+
+    expect(
+      await screen.findByText('주변 정류장을 불러오지 못했어요.'),
+    ).toBeVisible();
+
+    await user.click(
+      screen.getByRole('button', { name: '다시 시도' }),
+    );
+
+    await waitForTrialMarker();
+
+    expect(loadNearbyBusStopsMock).toHaveBeenCalledTimes(2);
+
+    expect(
+      screen.queryByText('주변 정류장을 불러오지 못했어요.'),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -363,5 +495,95 @@ describe('체험용 클로버 위치 분기·최근접 정류장', () => {
 
     // 재진입했을 때 이전 마커가 남지 않도록 cleanup을 보장한다.
     expect(marker.remove).toHaveBeenCalledTimes(1);
+  });
+
+  test('체험용 마커를 누르면 선택된 클로버와 메시지를 모달에 표시한다', async () => {
+    const user = userEvent.setup();
+    const nearest = stopAt(30);
+
+    getCurrentLocationMock.mockResolvedValue(current);
+    loadNearbyBusStopsMock.mockResolvedValue([nearest]);
+
+    jest
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0.75)
+      .mockReturnValueOnce(0.4);
+
+    renderMapUi(<MapView />);
+
+    await waitForTrialMarker();
+
+    const marker = screen.getByRole('button', {
+      name: '체험용 클로버',
+    });
+
+    expect(marker).toHaveAttribute('aria-haspopup', 'dialog');
+
+    // 사용자가 마커를 누르기 전에 클릭 안내가 보여야 한다.
+    expect(screen.getByText('클로버를 눌러보세요')).toBeVisible();
+
+    await user.click(marker);
+
+    const dialog = screen.getByRole('dialog', {
+      name: '행운을 발견했어요',
+    });
+
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('행운 가득')).toBeVisible();
+    expect(
+      within(dialog).getByText(
+        '작은 행운이 좋은 하루로 이어지길 바라요.',
+      ),
+    ).toBeVisible();
+
+    /**
+     * 인증은 아직 연결하지 않는다.
+     * 실제 로그인처럼 동작하지 않도록 CTA를 비활성 상태로 노출한다.
+     */
+    const loginButton = within(dialog).getByRole('button', {
+      name: '로그인하고 클로버 수집하기',
+    });
+
+    expect(loginButton).toBeDisabled();
+    expect(
+      within(dialog).getByText('로그인 기능은 준비 중이에요.'),
+    ).toBeVisible();
+
+    // 마커 이미지가 아니라 Dialog 안의 선택된 클로버 이미지를 확인한다.
+    expect(dialog.querySelector('img')).not.toBeNull();
+  });
+
+  test('체험 결과 모달을 닫으면 마커를 유지한 채 지도로 복귀한다', async () => {
+    const user = userEvent.setup();
+    const nearest = stopAt(30);
+
+    getCurrentLocationMock.mockResolvedValue(current);
+    loadNearbyBusStopsMock.mockResolvedValue([nearest]);
+
+    renderMapUi(<MapView />);
+
+    await waitForTrialMarker();
+
+    const marker = screen.getByRole('button', {
+      name: '체험용 클로버',
+    });
+
+    await user.click(marker);
+
+    const dialog = screen.getByRole('dialog', {
+      name: '행운을 발견했어요',
+    });
+
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: '닫기',
+      }),
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    // Dialog만 닫고 MapLibre Marker는 그대로 유지한다.
+    expect(marker).toBeInTheDocument();
+    expect(mapLibreMockState.markerInstances).toHaveLength(1);
   });
 });

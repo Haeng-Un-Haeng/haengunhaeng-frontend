@@ -72,6 +72,15 @@ export function MapView() {
   const mapRef = useRef<Map | null>(null);
 
   /**
+   * ref 변경은 React의 Effect를 다시 실행하지 않는다.
+   * 위치 조회가 지도 생성보다 빨리 끝나도 정류장 탐색을 시작할 수 있도록
+   * 지도가 실제로 생성된 시도(retryKey)를 상태로 기록한다.
+   */
+  const [initializedMapKey, setInitializedMapKey] = useState<
+    number | null
+  >(null);
+
+  /**
    * MapLibre Marker가 사용할 DOM 요소.
    *
    * CloverMarker는 이 요소에 createPortal로 렌더링한다.
@@ -182,6 +191,10 @@ export function MapView() {
         map.on('moveend', handleMoveEnd);
 
         map.addControl(new NavigationControl(), 'top-right');
+
+        // 지도 생성이 끝났음을 알리면 위치가 이미 조회된 경우에도
+        // 아래 정류장 탐색 Effect가 다시 실행된다.
+        setInitializedMapKey(retryKey);
       } catch {
         if (cancelled) {
           return;
@@ -252,7 +265,11 @@ export function MapView() {
   useEffect(() => {
     const map = mapRef.current;
 
-    if (!map || !location) return;
+    // 이전 재시도의 지도 준비 상태를 새 지도에서 재사용하지 않는다.
+    // 지도와 위치가 둘 다 준비됐을 때만 정류장 탐색을 시작한다.
+    if (initializedMapKey !== retryKey || !map || !location) {
+      return;
+    }
 
     const { coordinates } = location;
     const { latitude, longitude } = coordinates;
@@ -302,7 +319,7 @@ export function MapView() {
 
       setTrialTarget(null);
     };
-  }, [location, setTrialTarget]);
+  }, [initializedMapKey, location, retryKey, setTrialTarget]);
 
   /**
    * 결정된 정류장에 MapLibre Marker를 하나 생성한다.

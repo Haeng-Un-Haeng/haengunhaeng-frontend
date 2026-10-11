@@ -1,6 +1,13 @@
 import type { Clover } from './types';
 import type { CloverCollectionRecord } from './types';
 
+/**
+ * 클로버 목업 데이터
+ *
+ * @property {string} id - 클로버의 고유 식별자
+ * @property {string} name - 클로버의 이름
+ * @property {string} imageUrl - 클로버 이미지의 URL
+ */
 export const cloverFixtures: Clover[] = [
   {
     id: 'clover-001',

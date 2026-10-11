@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import { renderMapUi } from '../../../../tests/render-map-ui';
 import {
+  fireEvent,
   screen,
   waitFor,
   within,
@@ -497,7 +498,7 @@ describe('체험용 클로버 위치 분기·최근접 정류장', () => {
     expect(marker.remove).toHaveBeenCalledTimes(1);
   });
 
-  test('체험용 마커를 누르면 선택된 클로버와 메시지를 모달에 표시한다', async () => {
+  test('체험용 마커에서 상자를 선택하면 전환 종료 후 클로버와 메시지를 표시한다', async () => {
     const user = userEvent.setup();
     const nearest = stopAt(30);
 
@@ -529,7 +530,28 @@ describe('체험용 클로버 위치 분기·최근접 정류장', () => {
     });
 
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByText('행운 가득')).toBeVisible();
+    expect(within(dialog).getByText('30m 정류장')).toBeVisible();
+    expect(
+      within(dialog).queryByText('행운 가득'),
+    ).not.toBeInTheDocument();
+
+    const selectedBox = within(dialog).getByRole('button', {
+      name: '2번 물음표 상자',
+    });
+
+    await user.click(selectedBox);
+
+    expect(selectedBox).toBeDisabled();
+    expect(
+      within(dialog).queryByText('행운 가득'),
+    ).not.toBeInTheDocument();
+
+    // jsdom에는 실제 CSS 애니메이션이 없어 종료 이벤트를 전달한다.
+    fireEvent.transitionEnd(selectedBox, { propertyName: 'scale' });
+
+    expect(
+      await within(dialog).findByText('행운 가득'),
+    ).toBeVisible();
     expect(
       within(dialog).getByText(
         '작은 행운이 좋은 하루로 이어지길 바라요.',

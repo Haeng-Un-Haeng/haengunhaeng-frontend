@@ -1,5 +1,11 @@
 import type { LuckyMessage } from './types';
 
+/**
+ * 행운 메시지 목업 데이터
+ *
+ * @property {string} id - 메시지의 고유 식별자
+ * @property {string} content - 메시지 내용
+ */
 export const luckyMessageFixtures: LuckyMessage[] = [
   {
     id: 'message-001',

@@ -11,8 +11,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { cloverFixtures, CloverMarker } from '@/entities/clover';
-import { luckyMessageFixtures } from '@/entities/lucky-message';
+import { CloverMarker } from '@/entities/clover';
 import { cn } from '@/shared/lib/cn';
 import { Button } from '@/shared/ui/button';
 import { Notice } from '@/shared/ui/notice';
@@ -26,10 +25,9 @@ import {
 } from '../model/location';
 import { useMapUiStore } from '../model/provider';
 import { configureRoadWidths } from '../model/road-width';
-import { selectTrialResult } from '../model/trial-result';
 import { selectTrialTarget } from '../model/trial-target';
 import { LocationStatusNotice } from './LocationStatusNotice';
-import { TrialResultDialog } from './TrialResultDialog';
+import { TrialDiscoveryDialog } from './TrialDiscoveryDialog';
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
@@ -40,33 +38,11 @@ export function MapView() {
     (state) => state.setTrialTarget,
   );
 
-  const trialResult = useMapUiStore((state) => state.trialResult);
-
-  const openTrialResult = useMapUiStore(
-    (state) => state.openTrialResult,
+  // 마커 클릭은 체험 모달만 연다. 상자 선택은 모달 내부의 지역 상태가 담당한다.
+  const [isTrialDialogOpen, setTrialDialogOpen] = useState(false);
+  const [trialStopName, setTrialStopName] = useState<string | null>(
+    null,
   );
-
-  const closeTrialResult = useMapUiStore(
-    (state) => state.closeTrialResult,
-  );
-
-  /**
-   * Store에는 fixture 전체 객체가 아니라
-   * 선택된 클로버·메시지 ID만 저장한다.
-   *
-   * 화면에 필요한 실제 데이터는 원본 fixture에서 다시 찾는다.
-   */
-  const trialClover = trialResult
-    ? cloverFixtures.find(
-        (clover) => clover.id === trialResult.cloverId,
-      )
-    : undefined;
-
-  const trialMessage = trialResult
-    ? luckyMessageFixtures.find(
-        (message) => message.id === trialResult.messageId,
-      )
-    : undefined;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -302,6 +278,13 @@ export function MapView() {
         setTrialTarget(
           decision.status === 'READY' ? decision.target : null,
         );
+        setTrialStopName(
+          decision.status === 'READY'
+            ? (stops.find(
+                (stop) => stop.id === decision.target.stopId,
+              )?.name ?? null)
+            : null,
+        );
       })
       .catch(() => {
         if (controller.signal.aborted) {
@@ -309,6 +292,7 @@ export function MapView() {
         }
 
         setTrialTarget(null);
+        setTrialStopName(null);
 
         setBusStopError(true);
       });
@@ -393,7 +377,8 @@ export function MapView() {
    * 위치 조회부터 전체 체험 흐름을 다시 시작한다.
    */
   const handleRetry = () => {
-    closeTrialResult();
+    setTrialDialogOpen(false);
+    setTrialStopName(null);
     setTrialTarget(null);
     setMarkerElement(null);
     setLocation(null);
@@ -404,23 +389,11 @@ export function MapView() {
   };
 
   /**
-   * 체험용 클로버를 누를 때마다
-   * 클로버와 행운 메시지를 각각 독립적으로 선택한다.
-   *
-   * fixture가 비어 있어 결과를 만들 수 없다면
-   * 잘못된 상태로 Dialog를 열지 않는다.
+   * 지도 마커 클릭: 결과를 미리 뽑지 않고 상자 선택 화면만 연다.
+   * 상자 선택 → 결과 공개는 TrialDiscoveryDialog 내부에서 처리한다.
    */
   const handleTrialMarkerClick = () => {
-    const result = selectTrialResult(
-      cloverFixtures,
-      luckyMessageFixtures,
-    );
-
-    if (!result) {
-      return;
-    }
-
-    openTrialResult(result);
+    setTrialDialogOpen(true);
   };
 
   return (
@@ -452,11 +425,10 @@ export function MapView() {
           markerElement,
         )}
 
-      <TrialResultDialog
-        open={trialResult !== null}
-        clover={trialClover}
-        message={trialMessage}
-        onClose={closeTrialResult}
+      <TrialDiscoveryDialog
+        open={isTrialDialogOpen}
+        stopName={trialStopName ?? '정류장 이름을 확인할 수 없어요'}
+        onClose={() => setTrialDialogOpen(false)}
       />
 
       {!location && !hasLoadError && (
